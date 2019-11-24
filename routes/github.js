@@ -83,63 +83,74 @@ router.post('/push', async function(req, res, next) {
   }
 });
 
-module.exports = router;
+router.post('/pr', async function(req, res) {
+  console.log('$$', req.body);
+  const data = JSON.parse(req.body.payload);
+  console.log('$$', data);
+  const pr = data.pull_request || {};
+  const repo = data.repository || '';
+  console.log('PR title:', pr.title);
+  console.log('Action:', data.action, ', Merged:', pr.merged);
+  if ((data.action !== 'closed') || (pr.merged !== true)) {
+    console.log('uninteresting pr action');
+    res.sendStatus(200);
+    return;
+  }
+  const releaseBranches = ['production', 'beta', 'staging'];
+  const baseIndex = _.findIndex(releaseBranches, br => pr.base  && pr.base.ref && (pr.base.ref === br));
+  const headIndex =  _.findIndex(releaseBranches, br => pr.head && pr.head.ref && (pr.head.ref === br));
+  if((baseIndex >= 0) && (headIndex >= 0)) {
+    let actionText, slackWebhook, color, thumb_url;
+    console.log('Merged interesting branch...');
+    const release = baseIndex < headIndex;
+    if (release) {
+      actionText =  'released';
+      slackWebhook = process.env.RELEASE_WEBHOOK;
+      thumb_url = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Creative-Tail-rocket.svg/128px-Creative-Tail-rocket.svg.png';
+      color = 'good';
+    } else {
+      actionText = 'backmerged';
+      slackWebhook = process.env.BACKMERGE_WEBHOOK;
+      thumb_url =  '';
+      color = '#cccccc';
+    }
+    const mergedBy = pr.merged_by && pr.merged_by.login;
+    const pretext = repo.full_name + ': ' + releaseBranches[headIndex] + ' ' + actionText + ' to ' + releaseBranches[baseIndex] + ' by ' + mergedBy;
+    const stats = pr.commits + ' commits, '+ pr.additions + ' additions, ' + pr.deletions + ' deletions, ' + pr.changed_files + ' changed files.';
+    const githubMsg = {
+      'attachments': [
+        {
+          'fallback': pretext,
+          'color': color,
+          'pretext': pretext,
+          'title': '#' + data.number,
+          'title_link': pr.html_url,
+          'text': stats,
+          'thumb_url': thumb_url
+        }
+      ]
+    };
+    let response = await axios({
+      method: 'post',
+      url: slackWebhook,
+      data: {
+        text: '@channel'
+      }
+    });
+    if (response.status !== 200) {
+      return res.status(status).send('Slack error!');
+    }
+    response = await axios({
+      method: 'post',
+      url: slackWebhook,
+      data: githubMsg
+    });
+    if (response.status !== 200) {
+      return res.status(status).send('Slack error!');
+    }
+    console.log('release/backmerge alert: ' + JSON.stringify(githubMsg));
+  }
+  return res.sendStatus(200);
+});
 
-// module.exports = function(robot) {
-// 	return robot.router.post('/caari/gh-pr-event', function(req, res) {
-// 		const repoName = (process.env.REPO_NAME && process.env.REPO_NAME.split(',')) || '';
-// 		const data = req.body;
-// 		const pr = data.pull_request || {};
-// 		const repo = data.repository || '';
-// 		console.log('PR title:', pr.title);
-// 		console.log('Action:', data.action, ', Merged:', pr.merged);
-// 		if ((data.action !== 'closed') || (pr.merged !== true)) {
-// 			console.log('uninteresting pr action');
-// 			res.sendStatus(200);
-// 			return;
-// 		}
-// 		const releaseBranches = ['production', 'beta', 'staging'];
-// 		const baseIndex = _.findIndex(releaseBranches, br => pr.base  && pr.base.ref && (pr.base.ref === br));
-// 		const headIndex =  _.findIndex(releaseBranches, br => pr.head && pr.head.ref && (pr.head.ref === br));
-// 		if((baseIndex >= 0) && (headIndex >= 0)) {
-// 			let actionText, channelName, color, thumb_url;
-// 			console.log('Merged interesting branch...');
-// 			const release = baseIndex < headIndex;
-// 			const releaseChannelName = process.env.PR_RELEASE_CHANNEL && process.env.PR_RELEASE_CHANNEL.split(',');
-// 			const backmergeChannelName = process.env.PR_BACKMERGE_CHANNEL && process.env.PR_BACKMERGE_CHANNEL.split(',');
-// 			if (release) {
-// 				actionText =  'released';
-// 				channelName = releaseChannelName;
-// 				thumb_url = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Creative-Tail-rocket.svg/128px-Creative-Tail-rocket.svg.png';
-// 				color = 'good';
-// 			} else {
-// 				actionText = 'backmerged';
-// 				channelName = backmergeChannelName;
-// 				thumb_url =  '';
-// 				color = '#cccccc';
-// 			}
-// 			const mergedBy = pr.merged_by && pr.merged_by.login;
-// 			const pretext = repo.full_name + ': ' + releaseBranches[headIndex] + ' ' + actionText + ' to ' + releaseBranches[baseIndex] + ' by ' + mergedBy;
-// 			const stats = pr.commits + ' commits, '+ pr.additions + ' additions, ' + pr.deletions + ' deletions, ' + pr.changed_files + ' changed files.';
-// 			for (let channel of Array.from(channelName)) {
-// 				const githubMsg = {
-// 					'attachments': [
-// 						{
-// 							'fallback': pretext,
-// 							'color': color,
-// 							'pretext': pretext,
-// 							'title': '#' + data.number,
-// 							'title_link': pr.html_url,
-// 							'text': stats,
-// 							'thumb_url': thumb_url
-// 						}
-// 					]
-// 				};
-// 				robot.messageRoom(channel, '@channel \n');
-// 				robot.messageRoom(channel, githubMsg);
-// 				console.log('release/backmerge alert: ' + JSON.stringify(githubMsg));
-// 			}
-// 		}
-// 		return res.sendStatus(200);
-// 	});
-// };
+module.exports = router;

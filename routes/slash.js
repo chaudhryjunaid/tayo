@@ -50,19 +50,22 @@ const formatOutput = function(timestamp, tz, includeTimestamp, format1, format2)
   return `${tz}:  ${ts1}  -  ${ts2}`;
 };
 
-const sendResponse = function(url, text) {
+const sendResponse = async function(req, res, text) {
   return axios({
     method: 'post',
-    url,
+    url: req.body.response_url,
     data: {
       text
     }
   }).then((response) => {
     console.log('Slack response: ', response.status);
+    res.json({
+      text: req.body.command + ' ' + req.body.text
+    });
   });
 };
 
-const tsController = function(req, res) {
+const tsController = async function(req, res) {
   const text = req.body.text;
   let match;
   const tsRegex = /\b([+-]?\d+)\b/g;
@@ -86,7 +89,7 @@ const tsController = function(req, res) {
     .compact()
     .value();
   if (!timestamps.length) {
-    return sendResponse(req.body.response_url, '```' + strings.NO_TIMESTAMP_FOUND_ERROR + '```');
+    return sendResponse(req, res, '```' + strings.NO_TIMESTAMP_FOUND_ERROR + '```');
   }
   if (!timezones.length) {
     timezones = [
@@ -121,24 +124,23 @@ const tsController = function(req, res) {
   });
   output = _.map(output, tsBlock => tsBlock.join('\n'));
   output = output.join('\n\n');
-  return sendResponse(req.body.response_url, '```' + output + '```');
+  return sendResponse(req, res, '```' + output + '```');
 };
 
 /* GET home page. */
-router.post('/', function(req, res) {
+router.post('/', async function(req, res) {
   try {
-    res.send(req.body.command + ' ' + req.body.text);
     console.log(req.body);
     const command = req.body.command;
     switch(command) {
       case '/ts':
         return tsController(req, res);
       default:
-        return sendResponse(req.body.response_url, 'Your slash command was not recognized by Tayo!');
+        return sendResponse(req, res, 'Your slash command was not recognized by Tayo!');
     }
   } catch (e) {
     console.log(e.message, e.stack);
-    sendResponse(req.body.response_url, strings.SERVER_ERROR);
+    return sendResponse(req, res, strings.SERVER_ERROR);
   }
 });
 

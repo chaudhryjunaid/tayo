@@ -7,7 +7,7 @@ var logger = require('morgan');
 require('dotenv').config();
 
 var indexRouter = require('./routes/index');
-var tsRouter = require('./routes/ts');
+var slashRouter = require('./routes/slash');
 var githubRouter = require('./routes/github');
 
 var app = express();
@@ -23,7 +23,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/ts', tsRouter);
+app.use('/slash', slashRouter);
 app.use('/github', githubRouter);
 
 // catch 404 and forward to error handler

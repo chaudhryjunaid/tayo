@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const moment = require('moment-timezone');
 const _ = require('lodash');
+const axios = require('axios');
 
 const strings = {
   INVALID_TIMESTAMP_ERROR: 'Invalid timestamp',
@@ -49,6 +50,18 @@ const formatOutput = function(timestamp, tz, includeTimestamp, format1, format2)
   return `${tz}:  ${ts1}  -  ${ts2}`;
 };
 
+const sendResponse = function(url, text) {
+  return axios({
+    method: 'post',
+    url,
+    data: {
+      text
+    }
+  }).then((response) => {
+    console.log('Slack response: ', response.status);
+  });
+};
+
 const tsController = function(req, res) {
   const text = req.body.text;
   let match;
@@ -73,7 +86,7 @@ const tsController = function(req, res) {
     .compact()
     .value();
   if (!timestamps.length) {
-    return res.send(strings.NO_TIMESTAMP_FOUND_ERROR);
+    return sendResponse(req.body.response_url, '```' + strings.NO_TIMESTAMP_FOUND_ERROR + '```');
   }
   if (!timezones.length) {
     timezones = [
@@ -108,23 +121,24 @@ const tsController = function(req, res) {
   });
   output = _.map(output, tsBlock => tsBlock.join('\n'));
   output = output.join('\n\n');
-  return res.send('```' + output + '```');
+  return sendResponse(req.body.response_url, '```' + output + '```');
 };
 
 /* GET home page. */
 router.post('/', function(req, res) {
   try {
+    res.send(req.body.command + ' ' + req.body.text);
     console.log(req.body);
     const command = req.body.command;
     switch(command) {
       case '/ts':
         return tsController(req, res);
       default:
-        return res.send('Your slash command was not recognized by Tayo!');
+        return sendResponse(req.body.response_url, 'Your slash command was not recognized by Tayo!');
     }
   } catch (e) {
     console.log(e.message, e.stack);
-    res.send(strings.SERVER_ERROR);
+    sendResponse(req.body.response_url, strings.SERVER_ERROR);
   }
 });
 

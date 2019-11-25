@@ -1,16 +1,17 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+const createError = require('http-errors');
+const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware');
+const logger = require('morgan');
 
 require('dotenv').config();
 
-var indexRouter = require('./routes/index');
-var slashRouter = require('./routes/slash');
-var githubRouter = require('./routes/github');
+const indexRouter = require('./routes/index');
+const slashRouter = require('./routes/slash');
+const githubRouter = require('./routes/github');
 
-var app = express();
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -20,7 +21,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(awsServerlessExpressMiddleware.eventContext());
 
 app.use('/', indexRouter);
 app.use('/slash', slashRouter);

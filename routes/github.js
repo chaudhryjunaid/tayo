@@ -5,20 +5,21 @@ const _ = require('lodash');
 
 router.post('/push', async function(req, res, next) {
   try {
-    const repoList = (process.env.REPO_LIST && process.env.REPO_LIST.split(',')) || [];
-    const branch = process.env.GH_BRANCH_NAME || 'production';
+    const branches = process.env.GH_BRANCH_NAME && process.env.GH_BRANCH_NAME.split(',') || ['master', 'production'];
     const noNotificationPusher = '';
     const data = JSON.parse(req.body.payload);
     console.log('Incoming github push event:', data);
     const repo = data.repository || '';
     const pusher = data.pusher || '';
-    if ((repoList.indexOf(repo.name) !== -1) && (data.ref === `refs/heads/${branch}`) && (pusher.name !== noNotificationPusher) ) {
+    const isInterestingBranch = _.some(branches, branch => data.ref.includes(branch));
+    const branch = _.last(data.ref.split('/'));
+    if (isInterestingBranch && (pusher.name !== noNotificationPusher) ) {
       const { commits, head_commit } = data;
       const commit = data.after;
       const headMessage = head_commit.message.replace(/\r?\n|\r/g,'');
       const isHotFix = headMessage.indexOf('hotfix') !== -1;
       let color = 'warning';
-      let title = 'PR Merge Alert';
+      let title = `Production Merge Alert`;
       if(isHotFix) {
         color = 'danger';
         title = 'HotFix Merge Alert';
@@ -59,7 +60,7 @@ router.post('/push', async function(req, res, next) {
         method: 'post',
         url: process.env.HOTFIX_WEBHOOK,
         data: {
-          text: '@channel'
+          text: '<!channel>'
         }
       });
       if (response.status !== 200) {
@@ -84,9 +85,8 @@ router.post('/push', async function(req, res, next) {
 });
 
 router.post('/pr', async function(req, res) {
-  console.log('$$', req.body);
   const data = JSON.parse(req.body.payload);
-  console.log('$$', data);
+  console.log('Github PR action webhook invoked with: ', data);
   const pr = data.pull_request || {};
   const repo = data.repository || '';
   console.log('PR title:', pr.title);
@@ -96,7 +96,7 @@ router.post('/pr', async function(req, res) {
     res.sendStatus(200);
     return;
   }
-  const releaseBranches = ['production', 'beta', 'staging'];
+  const releaseBranches = ['master', 'production', 'beta', 'staging', 'develop', 'dev', 'development'];
   const baseIndex = _.findIndex(releaseBranches, br => pr.base  && pr.base.ref && (pr.base.ref === br));
   const headIndex =  _.findIndex(releaseBranches, br => pr.head && pr.head.ref && (pr.head.ref === br));
   if((baseIndex >= 0) && (headIndex >= 0)) {
@@ -134,7 +134,7 @@ router.post('/pr', async function(req, res) {
       method: 'post',
       url: slackWebhook,
       data: {
-        text: '@channel'
+        text: '<!channel>'
       }
     });
     if (response.status !== 200) {

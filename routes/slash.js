@@ -60,7 +60,7 @@ const sendResponse = async function(req, res, text) {
   }).then((response) => {
     console.log('Slack response: ', response.status);
     res.json({
-      text: req.body.command + ' ' + req.body.text
+      text: `<@${req.body.user_id}>`
     });
   });
 };

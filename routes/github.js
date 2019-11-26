@@ -8,7 +8,6 @@ router.post('/push', async function(req, res, next) {
     const branches = process.env.GH_BRANCH_NAME && process.env.GH_BRANCH_NAME.split(',') || ['master', 'production'];
     const noNotificationPusher = '';
     const data = JSON.parse(req.body.payload);
-    console.log('Incoming github push event:', data);
     const repo = data.repository || '';
     const pusher = data.pusher || '';
     const isInterestingBranch = _.some(branches, branch => data.ref && data.ref.includes(branch));
@@ -75,7 +74,6 @@ router.post('/push', async function(req, res, next) {
         return res.status(status).send('Slack error!');
       }
       console.log(`GH message sent for ${head_commit.message}`);
-      console.log('Slack response: ', response.status);
     }
     return res.sendStatus(200);
   } catch(e) {
@@ -86,11 +84,8 @@ router.post('/push', async function(req, res, next) {
 
 router.post('/pr', async function(req, res) {
   const data = JSON.parse(req.body.payload);
-  console.log('Github PR action webhook invoked with: ', data);
   const pr = data.pull_request || {};
   const repo = data.repository || '';
-  console.log('PR title:', pr.title);
-  console.log('Action:', data.action, ', Merged:', pr.merged);
   if ((data.action !== 'closed') || (pr.merged !== true)) {
     console.log('uninteresting pr action');
     res.sendStatus(200);
@@ -148,7 +143,7 @@ router.post('/pr', async function(req, res) {
     if (response.status !== 200) {
       return res.status(status).send('Slack error!');
     }
-    console.log('release/backmerge alert: ' + JSON.stringify(githubMsg));
+    console.log('release/backmerge alert: ' + pretext);
   }
   return res.sendStatus(200);
 });

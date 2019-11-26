@@ -5,13 +5,13 @@ const _ = require('lodash');
 
 router.post('/push', async function(req, res, next) {
   try {
-    const branches = process.env.GH_BRANCH_NAME && process.env.GH_BRANCH_NAME.split(',') || ['master', 'production'];
-    const noNotificationPusher = '';
+    const interestingBranches = process.env.GH_BRANCH_NAME && process.env.GH_BRANCH_NAME.split(',') || ['master', 'production'];
+    const noNotificationPusher = process.env.NO_NOTIFICATION_PUSHER || '';
     const data = JSON.parse(req.body.payload);
     const repo = data.repository || '';
     const pusher = data.pusher || '';
-    const isInterestingBranch = _.some(branches, branch => data.ref && data.ref.includes(branch));
     const branch = _.last(data.ref.split('/'));
+    const isInterestingBranch = _.some(interestingBranches, br => br === branch);
     if (isInterestingBranch && (pusher.name !== noNotificationPusher) ) {
       const { commits, head_commit } = data;
       const commit = data.after;

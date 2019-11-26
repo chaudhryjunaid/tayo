@@ -51,17 +51,8 @@ const formatOutput = function(timestamp, tz, includeTimestamp, format1, format2)
 };
 
 const sendResponse = async function(req, res, text) {
-  return axios({
-    method: 'post',
-    url: req.body.response_url,
-    data: {
-      text
-    }
-  }).then((response) => {
-    console.log('Slack response: ', response.status);
-    res.json({
-      text: `<@${req.body.user_id}>`
-    });
+  return res.json({
+    text
   });
 };
 

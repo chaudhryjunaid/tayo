@@ -11,7 +11,7 @@ router.post('/push', async function(req, res, next) {
     console.log('Incoming github push event:', data);
     const repo = data.repository || '';
     const pusher = data.pusher || '';
-    const isInterestingBranch = _.some(branches, branch => data.ref.includes(branch));
+    const isInterestingBranch = _.some(branches, branch => data.ref && data.ref.includes(branch));
     const branch = _.last(data.ref.split('/'));
     if (isInterestingBranch && (pusher.name !== noNotificationPusher) ) {
       const { commits, head_commit } = data;

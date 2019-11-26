@@ -50,9 +50,10 @@ const formatOutput = function(timestamp, tz, includeTimestamp, format1, format2)
   return `${tz}:  ${ts1}  -  ${ts2}`;
 };
 
-const sendResponse = async function(req, res, text) {
+const sendResponse = async function(req, res, msg) {
   return res.json({
-    text
+    response_type: 'in_channel',
+    ...msg
   });
 };
 
@@ -80,7 +81,7 @@ const tsController = async function(req, res) {
     .compact()
     .value();
   if (!timestamps.length) {
-    return sendResponse(req, res, '```' + strings.NO_TIMESTAMP_FOUND_ERROR + '```');
+    return sendResponse(req, res, {text: '```' + strings.NO_TIMESTAMP_FOUND_ERROR + '```'});
   }
   if (!timezones.length) {
     timezones = [
@@ -89,6 +90,7 @@ const tsController = async function(req, res) {
       'America/New_York',
       'America/Denver',
       'America/Los_Angeles',
+      'US/Central',
       'Asia/Karachi'
     ];
   }
@@ -115,7 +117,7 @@ const tsController = async function(req, res) {
   });
   output = _.map(output, tsBlock => tsBlock.join('\n'));
   output = output.join('\n\n');
-  return sendResponse(req, res, '```' + output + '```');
+  return sendResponse(req, res, {text: '```' + output + '```'});
 };
 
 /* GET home page. */
@@ -127,11 +129,11 @@ router.post('/', async function(req, res) {
       case '/ts':
         return tsController(req, res);
       default:
-        return sendResponse(req, res, 'Your slash command was not recognized by Tayo!');
+        return sendResponse(req, res, {text: 'Your slash command was not recognized by Tayo!'});
     }
   } catch (e) {
     console.log(e.message, e.stack);
-    return sendResponse(req, res, strings.SERVER_ERROR);
+    return sendResponse(req, res, {text: strings.SERVER_ERROR});
   }
 });
 

@@ -5,7 +5,7 @@ const _ = require('lodash');
 
 router.post('/push', async function(req, res, next) {
   try {
-    const interestingBranches = process.env.GH_BRANCH_NAME && process.env.GH_BRANCH_NAME.split(',') || ['master', 'production'];
+    const interestingBranches = process.env.GH_BRANCH_NAME && process.env.GH_BRANCH_NAME.split(',') || ['main', 'master', 'production'];
     const noNotificationPusher = process.env.NO_NOTIFICATION_PUSHER || '';
     const data = JSON.parse(req.body.payload);
     const repo = data.repository || '';
@@ -91,7 +91,7 @@ router.post('/pr', async function(req, res) {
     res.sendStatus(200);
     return;
   }
-  const releaseBranches = ['master', 'production', 'beta', 'staging', 'develop', 'dev', 'development'];
+  const releaseBranches = ['main', 'master', 'production', 'beta', 'staging', 'develop', 'dev', 'development'];
   const baseIndex = _.findIndex(releaseBranches, br => pr.base  && pr.base.ref && (pr.base.ref === br));
   const headIndex =  _.findIndex(releaseBranches, br => pr.head && pr.head.ref && (pr.head.ref === br));
   if((baseIndex >= 0) && (headIndex >= 0)) {

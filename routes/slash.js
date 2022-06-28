@@ -120,6 +120,10 @@ const tsController = async function(req, res) {
   return sendResponse(req, res, {text: '```' + output + '```'});
 };
 
+const weatherController = async function(req, res) {
+  return sendResponse(req, res, {text: req.body.text});
+}
+
 /* GET home page. */
 router.post('/', async function(req, res) {
   try {
@@ -128,6 +132,8 @@ router.post('/', async function(req, res) {
     switch(command) {
       case '/ts':
         return tsController(req, res);
+        case '/weather':
+        return weatherController(req, res);
       default:
         return sendResponse(req, res, {text: 'Your slash command was not recognized by Tayo!'});
     }

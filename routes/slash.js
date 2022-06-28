@@ -132,7 +132,7 @@ router.post('/', async function(req, res) {
     switch(command) {
       case '/ts':
         return tsController(req, res);
-        case '/weather':
+      case '/weather':
         return weatherController(req, res);
       default:
         return sendResponse(req, res, {text: 'Your slash command was not recognized by Tayo!'});

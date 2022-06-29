@@ -1,0 +1,19 @@
+name: Master Deployment
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    name: Deploy Slack Bot on AWS Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/setup
+      - name: Deploy To AWS Production
+        uses: ./.github/actions/deployment
+        with:
+          aws-access-key-id: ${{ secrets.AWS_PRODUCTION_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_PRODUCTION_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
